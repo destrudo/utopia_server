@@ -25,6 +25,9 @@ SPEC.md
 		# state 			(master/slave)
 		# stats
 
+	#nosql servers [directory of servers ever used.]
+		#
+
 	#stats
 		# id 				(unique id as in devices/fellows.)
 		# type				(Type for this stats row, type+id should equal a unique pair)
@@ -57,6 +60,7 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 #Zookeeper requirements
 	#Manageable server weight
 	#Zone weight when selecting responder
+	#Should be able to provide string data to the clients (Passing the ip of new fellows or db locations)
 
 
 
@@ -64,4 +68,19 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 	#configuration:
 		#Needs to support dynamic architecture data for devices via xml "configs"
 		#The server daemon should regularly check for new files, update valid ones and disregard invalid ones.
-		#The XML for the configs must be pedantic
+		#The XML for the configs must follow predefined xml schema's
+
+		#Base configuration should use libconfig.  The base config should be limited to core things such as permissions, base directory paths
+		*Note, all things noted/applied in the faux config file in /etc/utopiad.conf are required.
+
+		#Zookeeper should not be required for execution based on the local configuration (/etc/utopia/utopiad.conf)
+		#If ZK is enabled, the user should be able to configure multiple "Core" servers in a list so that if one is down, they can still access all data.
+
+	#Operation
+		#Database access
+			#When designed, it should be modular enough to support multiple nosql types without too much effort.  Compilation controls to switch different db types on and off will be required.
+
+		#Zookeeper
+			#Should not be required, compilation controls to not compile it would be ideal.
+
+		#MQTT
