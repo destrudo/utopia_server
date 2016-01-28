@@ -57,10 +57,9 @@ https://zookeeper.apache.org/doc/r3.5.1-alpha/zookeeperOver.html
 https://zookeeper.apache.org/doc/r3.4.6/zookeeperProgrammers.html
 http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 
-#Zookeeper requirements
-	#Manageable server weight
-	#Zone weight when selecting responder
-	#Should be able to provide string data to the clients (Passing the ip of new fellows or db locations)
+#MQTT broker requirements:
+	#Must support 3.1 nice big pretty SSL bridging (Like mosquitto)
+
 
 
 
@@ -76,7 +75,7 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 		#Zookeeper should not be required for execution based on the local configuration (/etc/utopia/utopiad.conf)
 		#If ZK is enabled, the user should be able to configure multiple "Core" servers in a list so that if one is down, they can still access all data.
 
-	#Operation
+	#Operational guidelines
 		#Database access
 			# DB access libs should be modular enough to support multiple nosql types without too much effort.  Compilation controls to switch different db types on and off will be required.
 			# Provided that the service can talk to the zookeeper clients, it should be able to send out a request for a list of currently active db servers.
@@ -89,24 +88,81 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 				#Hostnames/ip's of all other utopia servers
 				#unique identifiers for the mqtt subscription to use
 				*After confirming the above data, it can move to the `#MQTT utopia server specific` stuff
+				#MQTT server hostname/ip and port pairs which are valid to the networked data
 
 			  #DB specific
-				#
+				#Hostname/ip of currently-known-as-alive db servers in a set with the port number and db type (eg. 10.0.0.3:12345:mongodb)
 
-			#Certain commands will need to be acknowledged through the zookeeper cluster
+			#Certain mqtt commands will need to be acknowledged through the zookeeper cluster
+			# The zookeeper service should be able to manage server weights based on:
+				# Manual weighting
+				# current load
+				# zone information
 
 		#MQTT
-			# We will want to support a minimum of two MQTT bridges so that we can have one for the server and another for client operations
+			#Topic layout:
+
+				/${hostname|uuid}/${zone}/${type}/${id}/${post_type}/${data}
+					# ${type} defines the kind of device it is.
+					# ${id}, might not be applicable to most devices, but cannot be ignored.  A good example of software that uses it is `py_aumh`, since it can interface with more than one arduino_uart_mh device per service
+					# ${post_type} defines what sort of data it's publishing.  This part of the topic is directly aligned to the xml configuration data, so the names should be consistent.
+						#If the post_type is unknown, the service should be able to populate a nosql entry by dropping each piece of ${data}/* as a dictionary-like thing.
+
+					# ${data} denotes whatever data is there. this is extremely device specific.  Everything above ${post_type} is considered device data
+				
+
+			# We will want to support a minimum of two MQTT bridges so that we can have one for the server and another for client operations (By design, they'd be on separate servers)
+
+			# Those bridges must support SSL (Certain clients will only support SSL, but it should support ALL FORMS of authentication (Even none!) )
 
 			#MQTT utopia server specific (Transferrence data so that we can send more detailed messages to the server without bogging down zookeeper.)
 				***It is required that the MQTT portion of Zookeeper be handled already before these subscriptions will occur.
 				#After data from zookeeper acquired, a few subs will occur for each unique utopia_server (QoS 2):
-					/${clustername}/${hostname} # This is the default-to-use path, however if the correct server is not acknowledging messages, it will fallback to...
-					/${clustername}/${unique_id} # The fallback path (A much more unique UUID based construct)
+					/${clustername}/${remoteServerHostname}/${utopia_server_hostname}/recv # This is the default-to-use path, however if the correct server is not acknowledging messages, it will fallback to...
+					/${clustername}/${remoteServerUnique_id}/${utopia_server_unique_id}/recv # The fallback path (A much more unique UUID based construct)
+					# Where the utopia_server_X is the CURRENT RUNNING utopia server daemon's hostname/unique_id.
+
+					#Note: When the local utopia server publishes, it will push out to /clustername/remotserverwhatever/mywhatever/send, with an extended topic that will of course vary
 
 
-			#Immediate subscription data
-				#For every unique server using the zookeeper service
-			#MQTT Response data (Data to be sent per a previous request over mqtt)
+				#Immediate subscription data (After the service starts successfully and contacts the mqtt service server bridge, it will sub to these)
+					/${clustername}/${utopia_server_hostname} # Where utopia_server_X is the CURRENT RUNNING utopia server daemon's data.
+					/${clustername}/${utopia_server_unique_id}
+
+				#The immediately above two combined allow for the local server sort out the source of a request or new data, as well as send data to the appropriate place.
+
+
+
+
+			#MQTT Response data (Data to be sent per a previous (subbed) request over mqtt)
 
 			#Service reponse data (Data to be sent per a previous request over $x), where $x is a service, a client, or some other such software that can perform an action against a utipia server instance
+
+			#MQTT subscription data
+				#Previously subscribed data point (This is a device already known to the server, to which the server is currently subscribed to the root of this device)
+					#If we don't have a topic hash
+						#generate topic hash (sha-something big and unique)
+
+					#If we intend to respond to it
+						#Send a zookeeper message (This hash) in order to determine which server will respond
+
+					#wait for zookeeper to tell us which server is going to respond
+
+					#If we're not going to respond
+						#stop the thread
+
+					#Update database data
+
+					#If response required
+						#prepare response message (However required)
+						#send response message
+
+				#Zone subscription data (New device in zone sub!)
+					#Generate topic hash
+					#Send request to zookeeper (this hash) in order to determine which server will respond
+					#Create new DB entry with device type
+					#Goto `previously subscribed data point` methods above.
+
+
+
+				#When Utopia server 'opts' to subscribe to a post point root
