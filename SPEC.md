@@ -28,6 +28,13 @@ SPEC.md
 	#nosql servers [directory of servers ever used.]
 		#
 
+	#xmlconfigurations [XML uploaded during a volatile configuration refresh which contained new data]
+		# name
+		# type 				(Config | schema)
+		# hash
+		# version
+		# data 				(Actual XML data)
+
 	#stats
 		# id 				(unique id as in devices/fellows.)
 		# type				(Type for this stats row, type+id should equal a unique pair)
@@ -98,6 +105,7 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 				# Manual weighting
 				# current load
 				# zone information
+				# configuration weighting (Separate from current load and zone information weighting), this is used to determine which configuration to apply if there have been multiple updates on the same version/device class across multiple servers.
 
 		#MQTT
 			#Topic layout:
@@ -166,3 +174,44 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 
 
 				#When Utopia server 'opts' to subscribe to a post point root
+
+		#Volatile configuration synchronization
+			#If a server performs a configuration update and realizes it has a new config, it should automatically push it out to the DB
+				Process:
+					#send updated config message with XML version tag and type
+
+					#Wait for other cluster members see if they get the same tag/type pair
+
+					#If they do, extend tag/type to hash of raw xml
+
+					#If others are getting different hash values, the one with the highest `configuration weight` wins (NEed to include the ratio of changing systems with the matching hash).  All the ones with nonmatching hashes will be replacing their configuration/schema files in the next few steps
+
+					#The others will enter a polling state on the zookeeper server, waiting for the update to occur (hash will still need to be stored as a var until validation complete)
+
+					#Create a new db xmlconfiguration entry containing the raw data, the hash, the version, the config type, and the name
+
+					#Issue update command to the cluster
+						#all other systems will then grab the data from the DB
+						#They will perform a hash on the raw entry data
+						#if nonmatching config
+							#Warning to log
+							#Wait and try again (Max loop time needs to be set)
+							#On total failure (All loops return bad hash), the service needs to mark all responses to this type of service as "to be ignored", and set an additional warning over zookeeper, as well as another local log entry (Since it's likely a seriously failing system, or the local DB is having some horrible issue)
+
+							#System which set this in motion should attempt to connect to that db server, and read the data off of it.
+							#If it can connect
+								# Needs to get the entry
+								# If the hash matches
+									# Issue a clean restart to the service which failed
+								# if it does not
+									# attempt to write the correct data to that server and then verify.
+									# if verification fails
+										# DB gets tagged as problematic, message should go out to all servers which states that it should not use that DB for now (DB will need to be manually re-added to the db table)
+									# else
+										# All good, restart service which failed
+							#if it can't connect
+								#Issue warning about what happened in local log
+
+						#if matching config
+							#good, update and be done.
+					
