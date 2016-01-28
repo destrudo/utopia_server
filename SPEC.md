@@ -78,9 +78,35 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 
 	#Operation
 		#Database access
-			#When designed, it should be modular enough to support multiple nosql types without too much effort.  Compilation controls to switch different db types on and off will be required.
+			# DB access libs should be modular enough to support multiple nosql types without too much effort.  Compilation controls to switch different db types on and off will be required.
+			# Provided that the service can talk to the zookeeper clients, it should be able to send out a request for a list of currently active db servers.
+
 
 		#Zookeeper
 			#Should not be required, compilation controls to not compile it would be ideal.
+			# Need to be able to acquire from the other zookeeper clients (Directly or from the server)
+			  #MQTT specific
+				#Hostnames/ip's of all other utopia servers
+				#unique identifiers for the mqtt subscription to use
+				*After confirming the above data, it can move to the `#MQTT utopia server specific` stuff
+
+			  #DB specific
+				#
+
+			#Certain commands will need to be acknowledged through the zookeeper cluster
 
 		#MQTT
+			# We will want to support a minimum of two MQTT bridges so that we can have one for the server and another for client operations
+
+			#MQTT utopia server specific (Transferrence data so that we can send more detailed messages to the server without bogging down zookeeper.)
+				***It is required that the MQTT portion of Zookeeper be handled already before these subscriptions will occur.
+				#After data from zookeeper acquired, a few subs will occur for each unique utopia_server (QoS 2):
+					/${clustername}/${hostname} # This is the default-to-use path, however if the correct server is not acknowledging messages, it will fallback to...
+					/${clustername}/${unique_id} # The fallback path (A much more unique UUID based construct)
+
+
+			#Immediate subscription data
+				#For every unique server using the zookeeper service
+			#MQTT Response data (Data to be sent per a previous request over mqtt)
+
+			#Service reponse data (Data to be sent per a previous request over $x), where $x is a service, a client, or some other such software that can perform an action against a utipia server instance
