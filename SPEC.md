@@ -108,11 +108,11 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 				# configuration weighting (Separate from current load and zone information weighting), this is used to determine which configuration to apply if there have been multiple updates on the same version/device class across multiple servers.
 
 		#MQTT
-			#Topic layout:
+			#Topic layout (Note the leading characters for zone and type)
 
-				/${hostname|uuid}/${zone}/${type}/${id}/${post_type}/${data}
+				/${hostname|uuid}/z${zone}/t-${type}/i-${id}/p-${post_type}/${data}
 					# ${type} defines the kind of device it is.
-					# ${id}, might not be applicable to most devices, but cannot be ignored.  A good example of software that uses it is `py_aumh`, since it can interface with more than one arduino_uart_mh device per service
+					# ${id}, might not be applicable to most devices, but cannot be ignored.  A good example of software that uses it is `py_aumh`, since it can interface with more than one arduino_uart_mh device per service.  The variable data after `i-` will be converted into hex (and later an integer) so it must comply as such.
 					# ${post_type} defines what sort of data it's publishing.  This part of the topic is directly aligned to the xml configuration data, so the names should be consistent.
 						#If the post_type is unknown, the service should be able to populate a nosql entry by dropping each piece of ${data}/* as a dictionary-like thing.
 
