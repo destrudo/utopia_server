@@ -9,6 +9,8 @@
 #define MAX_XTOPIC_LEN 128
 #define MAX_MESSAGE_LEN 128
 
+#define POLL_WAIT 10
+
 #define ADDRESS     "tcp://localhost:1883"
 #define CLIENTID    "ExampleClientPub"
 #define TOPIC       "MQTT Examples"
@@ -18,22 +20,36 @@
 
 /*
  *
+ * This is the structure to be utilized by the pthread create call.
+ */
+struct utopia_mqtt_thread_args_t {
+    utopia_server_t * lsrv;
+    int * pipe_mqtt_in;
+    int * pipe_mqtt_out;
+    int * pipe_cmd_in;
+    int * pipe_cmd_out;
+}
+
+/*
+ *
  * This is the text only message structure
  */
 struct utopia_mqtt_message_tol_t {
-    char topic[MAX_TOPIC_LEN];
+    /* There's weird addition here because we want to ensure that we've got equal sizes for each */
+    char topic[MAX_HOSTNAME_LEN + MAX_SONE_NAME_LEN + MAX_TYPE_LEN + sizeof(uint64_t) + MAX_XTOPIC_LEN];
 
     uint8_t qos;
 
     char message[MAX_MESSAGE_LEN];
 }
 
+/* These two need to be the same size */
 struct utopia_mqtt_message_t {
     char hnid[MAX_HOSTNAME_LEN]; //This is the hostname or uuid converted to characters.
     char zone[MAX_ZONE_NAME_LEN];
     char type[MAX_TYPE_LEN];
     uint64_t id;
-    char post_type[]
+    // char post_type[]
     char xtopic[MAX_XTOPIC_LEN];
 
     uint8_t qos;
@@ -42,7 +58,7 @@ struct utopia_mqtt_message_t {
 }
 
 struct utopia_mqtt_subscription_t {
-    
+
 }
 
 

@@ -9,22 +9,26 @@
  *
  *
  */
-int mqtt_thread(utopia_server_t * localsrv, int pipe_in, int pipe_out) //We need more options!
+int mqtt_thread(utopia_server_t * localsrv, int * pipe_mqtt_in, int * pipe_mqtt_out, int * pipe_command_in, int * pipe_command_out) //We need more options!
 {
 	int threadStop = 0; //This will obviously need to change to something that mqtt_thread_stop can control.
 	int poll_rdy;
-	struct pollfd *poll_fd;
+	struct pollfd *poll_mqtt_fd, * poll_cmd_fd;
 	MQTTClient client;
 	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 	MQTTClient_message publisher = MQTTClient_message_initializer;
 
 	/* We're making this dynamic alloc so that in the future it'll be easy to allow for multiple pipes */
-	poll_fd = calloc(1, sizeof(struct pollfd));
+	poll_mqtt_fd = calloc(1, sizeof(struct pollfd));
+	poll_cmd_fd = calloc(1, sizeof(struct pollfd));
 
 	MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
 
-	poll_fd.fd = pipe_in;
-	poll_fd.events = POLLIN;
+	poll_mqtt_fd->fd = *pipe_mqtt_in;
+	poll_mqtt_fd->events = POLLIN;
+
+	poll_cmd_fd->fd = *pipe_cmd_in;
+	poll_cmd_fd->events = POLLIN;
 
 	if (poll_fd == NULL)
 	{
@@ -34,14 +38,47 @@ int mqtt_thread(utopia_server_t * localsrv, int pipe_in, int pipe_out) //We need
 
 	while (!threadStop)
 	{
-		poll_rdy = poll(poll_fd, 1, POLL_WAIT);
+		/* Command pipe in */
+		poll_rdy = poll(poll_cmd_fd, 1, POLL_WAIT);
 		if (poll_rdy < 0)
 		{
-			/* We need a way nicer way to handle a failure of the core pipe */
-			fprintf(stderr, "utopia_mqtt.mqtt_thread, failed to poll pipe\n");
+			fprintf(stderr, "utopia_mqtt.mqtt_thread, failed to poll command pipe\n");
 			exit(-2);
 		}
 
+//This needs to:
+		//Regularly ping the parent so that it knows its alive (If not parent will kill and restart)
+		//Shutdown self
+		//Force reconnect
+		if (poll_cmd_fd->revents & POLLIN)
+		{
+			//Perform operation in response to new command message from the parent
+		}
+
+//This needs to be able to:
+		//Subscribe to new clients
+		//Subscribe to zone
+		//Subscribe to server (hostname/uuid)
+		//Subscribe to everything (With special handler) **If possible!
+
+		//publish arbitrary data to arbitrary topic
+
+		/* Data pipe in */
+		poll_rdy = poll(poll_mqtt_fd, 1, POLL_WAIT);
+		if (poll_rdy < 0)
+		{
+			/* We need a way nicer way to handle a failure of the core pipe */
+			fprintf(stderr, "utopia_mqtt.mqtt_thread, failed to poll mqtt pipe\n");
+			exit(-2);
+		}
+
+		if (poll_mqtt_fd->revents & POLLIN)
+		{
+			//Perform operations in response to a new mqtt message from the parent
+		}
+
+
+//
 
 	}
 }
@@ -52,6 +89,14 @@ int mqtt_thread(utopia_server_t * localsrv, int pipe_in, int pipe_out) //We need
  */
 int mqtt_thread_start(utopia_server_t * localsrv)
 {
+	int pipe_mqtt_in[2], pipe_mqtt_out[2], pipe_cmd_in[2], pipe_cmd_out[2];
+	pid_t threadpid;
+
+	pipe(pipe_mqtt_in);
+	pipe(pipe_mqtt_out);
+	pipe(pipe_cmd_in); /* I don't really think we need or should want these extra pipes since we need to perform checks anyways */
+	pipe(pipe_cmd_out);
+
 
 }
 
