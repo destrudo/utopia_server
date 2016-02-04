@@ -97,6 +97,7 @@ int mqtt_thread_start(utopia_server_t * localsrv)
 	pipe(pipe_cmd_in); /* I don't really think we need or should want these extra pipes since we need to perform checks anyways */
 	pipe(pipe_cmd_out);
 
+	
 
 }
 
