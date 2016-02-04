@@ -82,6 +82,8 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 		#Zookeeper should not be required for execution based on the local configuration (/etc/utopia/utopiad.conf)
 		#If ZK is enabled, the user should be able to configure multiple "Core" servers in a list so that if one is down, they can still access all data.
 
+		#There will be a REST implementation for handling commands to the service in an easy way.
+
 	#Operational guidelines
 		#Database access
 			# DB access libs should be modular enough to support multiple nosql types without too much effort.  Compilation controls to switch different db types on and off will be required.
@@ -106,6 +108,11 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 				# current load
 				# zone information
 				# configuration weighting (Separate from current load and zone information weighting), this is used to determine which configuration to apply if there have been multiple updates on the same version/device class across multiple servers.
+
+		#REST API
+			#Required, acts as a management/command interface for other services
+			#Ideally, we'd be able to create more than one thread of the API selected in order to serve large amounts of data
+			#Need a mutex for ensuring things get handled in order
 
 		#MQTT
 			#Topic layout (Note the leading characters for zone and type)
