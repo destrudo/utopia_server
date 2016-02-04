@@ -222,3 +222,26 @@ http://www.eclipse.org/paho/files/mqttdoc/Cclient/
 						#if matching config
 							#good, update and be done.
 					
+
+
+#REST stuff
+/zone/${zone}/
+			 /devices (List all devices/hosts with paths and status (csv))
+
+/devices (List all devices known everywhere, with zones, with paths to them (In zones) and status (csv))
+	deviceX,zoneX,/zone/zoneX/deviceX,on
+
+	deviceX,,/device/deviceX,off
+
+	deviceX,,/device/deviceX-213141352365262,ok /* Where deviceX has the 2131whatever unique identifier (Duplicate device known to have existed) */
+
+/devices/$device || /devices/$device-$id || /zone/$zone/$device || /zone/$zone/$device-$id
+-These 4 things should link to the same data
+	
+	# /$path/data - should print out the data tree XML in a (possibly) simplified form
+	# /$path/out - should print out only the output data tree xml
+	# /$path/in - should print out only the input data tree xml
+	# For any of the above paths:
+		/$path/X/$treevalue or /$path/X/$treeroot/$treebranch0/$treebranch16/$leaf
+			#With this, distinct data retrieval or setting should be possible
+
