@@ -37,6 +37,28 @@ int main(int argc, char * argv[])
 	/* Start up REST api controller thread */
 
 	/* While true */
-		/* If data in REST api pipe
+	while (1)
+	{
+		/* if data in zookeeper */
+
+		/* if data in mqtt */
+
+		/* If data in REST device req queue */ /* Note, this will first be a var */
+		if (r_devreq != NULL)
+		{
+			//Acquire r_mutex_answ
+			//Answer the request.
+			//Release r_mutex_answ
+		}
+
+		/* if data in REST server req queue */ /* Note, this will first be a var */
+		if (r_srvreq != NULL)
+		{
+			//Acquire r_mutex_answ
+			//Answer the request.
+			//Release r_mutex_answ
+		}
+
+	}
 
 }
