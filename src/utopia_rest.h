@@ -13,7 +13,7 @@
 
 #define DEFAULT_REST_ROOT		"/var/lib/utopiad"
 
-#define CERR(errstr)			fprintf(stderr, "utopia_rest.%s", errstr)
+#define URCERR(errstr)			fprintf(stderr, "ERROR: utopia_rest.%s\n", errstr)
 
 /* We aren't going to use these at first... */
 struct r_device_request_tailq_t {

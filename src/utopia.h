@@ -99,3 +99,14 @@ struct utopia_server_stats_t {
 	struct utopia_server_stats_t * next; //The previous minute.
 }
 
+/*
+ *
+ * This method accepts a db entry and fills an XML string from a valid document.
+ *  It then populates str with the completed data.
+ */
+static void prepare_device_xml_from_json(char * str, char * bson_json)
+{
+	
+}
+
+static void prepare_
