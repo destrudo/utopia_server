@@ -1,0 +1,6 @@
+<!-- This is a generic light sample for a device which has one "part", which is a standard LED part.  All it can do is: Receive commands for turning on/off, sends regular updates showing the current LED state.  It is an MQTT connected device. -->
+
+<generic_light>
+	<id></id>
+	<state></state> <!-- On/Off, 1/0 -->
+</generic_light>
