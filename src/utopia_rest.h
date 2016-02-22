@@ -25,22 +25,19 @@
 
 enum request_type { NONE, DEVICE, SERVER };
 
-/* We aren't going to use these at first... */
-struct r_device_request_tailq_t {
-	struct utopia_device_request_t * data;
+struct r_request_tailq_t {
+	struct r_request_t * data;
 	TAILQ_ENTRY(r_device_request_tailq_t) entries;
 };
 
-struct r_server_request_tailq_t {
-	struct utopia_server_request_t * data;
-	TAILQ_ENTRY(r_server_request_tailq_t) entries;
-};
+
 
 /* Instead, we'll use this. */
 struct r_request_t {
 	enum request_type type;
 	struct utopia_device_request_t * r_devreq;
 	struct utopia_server_request_t * r_srvreq;
+	const char * data; /* This is a lazy quick thing */
 };
 
 
@@ -60,14 +57,19 @@ struct utopia_rest_thread_t {
 	int       thread_num;
 };
 
-static pthread_mutex_t * r_mutex_dev; /* Device request mutex */
-static pthread_mutex_t * r_mutex_srv; /* Server request mutex */
+//static pthread_mutex_t * r_mutex_dev; /* Device request mutex */
+//static pthread_mutex_t * r_mutex_srv; /* Server request mutex */
+extern TAILQ_HEAD(r_request_head_tq, r_request_tailq_t) r_request_head;
 
-static pthread_mutex_t * r_mutex_answ; /* request response mutex */
+/* These are the mutexes that'll get called in utopia_server.cpp */
+extern pthread_mutex_t * r_mutex_answ; /* request response mutex */
 
+/* These are the internal mutexes */
 static pthread_mutex_t * r_mutex_control; /* Control mutex */
 
-static struct r_request_t * r_request;
+/* This'll get called */
+//extern struct r_request_t * r_request;
+extern struct r_request_tailq_t * r_request;
 
 static struct mg_serve_http_opts * http_server_opts;
 static char rest_port[6];
@@ -78,6 +80,8 @@ static int r_service = 0;
 
 static struct mg_mgr * r_manager;
 static struct mg_connection * r_connection;
+
+static void http_message_debug(struct http_message *hm, char * source);
 
 /* This method should take an xml node or in-place memory xml, and output formatted html */
 int prepare_html_from_xml(const char *xmlin, const char *htmlout);

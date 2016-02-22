@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <sys/queue.h>
+
 
 #include <string>
 #include <vector>
@@ -10,10 +12,36 @@
 #include "utopia.h"
 #include "utopia_rest.h"
 
+/* Global carryovers. Nuke in the future by making r_config() take initialized queues and mutexes. */
+pthread_mutex_t * r_mutex_answ;
+// struct r_request_tailq_t * r_request; /* This needs to go away. */
+struct r_request_head_tq r_request_head_head;
+
+/* MONGOOSE DEBUG METHODS */
+static void http_message_debug(struct http_message *hm, char * source) {
+  printf("##############################DEBUG################################\n");
+  printf("Source: %s", source);
+  if (hm->message.p != NULL)
+    printf("\n\nhm->message = '%s'\n\n", (const char *)hm->message.p);
+  if (hm->uri.p != NULL)
+    printf("\n\nhm->uri = '%s'\n\n", (const char *)hm->uri.p);
+  if (hm->method.p != NULL)
+    printf("\n\nhm->method = '%s'\n\n", (const char *)hm->method.p);
+  if (hm->body.p != NULL)
+    printf("\n\nhm->body = '%s'\n\n", (const char *)hm->body.p);
+  if (hm->proto.p != NULL)
+    printf("\n\nhm->proto = '%s'\n\n", (const char *)hm->proto.p);
+  if (hm->query_string.p != NULL)
+    printf("\n\nhm->query_string = '%s'\n\n", (const char *)hm->query_string.p);
+  printf("###################################################################\n");
+}
+
+
 
 int mg_startswith(const struct mg_str *pre, const char *str)
 {
-	return strlen(str) < pre->len ? 0 : strncmp(pre->p, str, pre->len) == 0;
+	printf("startswith: mg_str len: %lu, data: '%s'\n", pre->len, (char *)pre->p);
+	return strlen(str) > pre->len ? 0 : strncmp(pre->p, str, pre->len) == 0;
 }
 
 int r_config(char * hostname, char * rest_root, char * acl, char * rest_port)
@@ -22,11 +50,18 @@ int r_config(char * hostname, char * rest_root, char * acl, char * rest_port)
 	//http_server_opts = (mg_serve_http_opts*)calloc(1, sizeof(mg_serve_http_opts));
 	http_server_opts = new mg_serve_http_opts;
 	
+	// r_request = NULL;
+
 	/* And our lovely mutexs */
-	r_mutex_dev = (pthread_mutex_t*)calloc(1, sizeof(pthread_mutex_t));
-	r_mutex_srv = (pthread_mutex_t*)calloc(1, sizeof(pthread_mutex_t));
-	r_mutex_answ = (pthread_mutex_t*)calloc(1, sizeof(pthread_mutex_t));
-	r_mutex_control = (pthread_mutex_t*)calloc(1, sizeof(pthread_mutex_t));
+	//r_mutex_dev = (pthread_mutex_t*)calloc(1, sizeof(pthread_mutex_t));
+	//r_mutex_srv = (pthread_mutex_t*)calloc(1, sizeof(pthread_mutex_t));
+	// r_mutex_answ = (pthread_mutex_t*)calloc(1, sizeof(pthread_mutex_t));
+	// r_mutex_control = (pthread_mutex_t*)calloc(1, sizeof(pthread_mutex_t));
+	r_mutex_answ = new pthread_mutex_t;
+	r_mutex_control = new pthread_mutex_t;
+	pthread_mutex_init(r_mutex_answ, NULL);
+	pthread_mutex_init(r_mutex_control, NULL);
+
 
 	//r_manager = (mg_mgr *)calloc(1, sizeof(mg_mgr));
 	r_manager = new mg_mgr;
@@ -87,19 +122,19 @@ int r_set_request_message(struct mg_connection * nc, int ev, http_message * hm)
 
 	/* Attempt to acquire the r_mutex_answ mutex */
 
-	if (r_request->r_devreq->request <= 0)
-	{
+	// if (r_request->r_devreq->request <= 0)
+	// {
 		/* Post bad data response */
-	}
-	else
-	{
+	// }
+	// else
+	// {
 		/* Post data response */
-	}
+	// }
 
 	/* Release r_mutex_answ */
 
-	free(r_request->r_devreq);
-	r_request->r_devreq = NULL;
+	// free(r_request->r_devreq);
+	// r_request->r_devreq = NULL;
 
 	/* Release the device request semaphore */
 	return 0;
@@ -112,24 +147,75 @@ int r_get_request_message(struct mg_connection * nc, int ev, http_message * hm)
 
 int r_manage_message(struct mg_connection * nc, int ev, http_message * hm)
 {
-	/* Just for a little good measure, we wanna support device and dev */
-	// if ( (mg_startswith(&hm->uri, "/api/v1/dev/")) || (mg_startswith(&hm->uri, "/api/v1/device/")) )
-	// {
-	// 	/* Dump data from devices that comply with the name following the get/ */
-	// 	r_get_request_message(nc, ev, hm);
-	// }
-	// else if (mg_startswith(&hm->uri, "/api/v1/server/"))
-	// {
-	// 	/* Server specific command message */
-	// 	r_server_message(nc, ev, hm);
-	// }
-	// else
-	// {
-	// 	/* Serve static content [whatever it may be.] */
-	// 	mg_serve_http(nc, hm, *http_server_opts);
-	// }
+	bool done = false;
 
-	mg_serve_http(nc, hm, *http_server_opts);
+	printf("rmm: entered.\n");
+	/* Just for a little good measure, we wanna support device and dev */
+	/* This is for REST devices (Devices that use REST to communicate.) */
+	if ( (mg_startswith(&hm->uri, "/api/v1/dev/")) || (mg_startswith(&hm->uri, "/api/v1/device/")) )
+	{
+		printf("rmm: startswith /api/v1/dev\n");
+		/* Dump data from devices that comply with the name following the get/ */
+		// r_get_request_message(nc, ev, hm);
+	}
+	/* Server to server rest data */
+	else if (mg_startswith(&hm->uri, "/api/v1/server/"))
+	{
+		printf("rmm: startswith /api/v1/server\n");
+		/* Server specific command message */
+		// r_server_message(nc, ev, hm);
+	}
+	/* Client interface requests */
+	else if (mg_startswith(&hm->uri, "api/v1/client/"))
+	{
+
+	}
+	else
+	{
+		while(!done) {
+			printf("rmm: in rmm loop.\n");
+			/* Serve static content [whatever it may be.] */
+
+			/* WE SHOULD DO A TRY-TO-ACQUIRE HERE */
+
+			if(pthread_mutex_lock(r_mutex_answ)) {
+				URCERR(".rmm() mutex lock failed.");
+				return -1;
+			}
+
+			/* This is wrong, but it's funny. */
+			if (1) {
+				printf("r_request not null.\n");
+				fflush(stdout);
+				sleep(1);
+				if(pthread_mutex_unlock(r_mutex_answ)) {
+					URCERR(".rmm() mutex unlock notnull failed.");
+					return -1;
+				}
+
+				continue;
+			}
+
+			printf("rmm: ALLOCATING!\n");
+			// r_request = new r_request_t;
+			// r_request->type = SERVER;
+			// r_request->data = hm->message.p;
+			// printf("rmm: data set: '%s'\n", r_request->data);
+
+
+			if(pthread_mutex_unlock(r_mutex_answ)) {
+				URCERR(".rmm() mutex unlock failed.");
+				return -1;
+			}
+
+			done = true;
+
+			mg_serve_http(nc, hm, *http_server_opts);
+		}
+
+	}
+
+	//mg_serve_http(nc, hm, *http_server_opts);
 
 	return 0;
 }
